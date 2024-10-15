@@ -37,8 +37,7 @@ public class Main {
 
         scanner.close();
     }
-
-    // Método para generar referencias basado en la imagen y el mensaje escondido
+    //METODO PRINCIPAL OPCION 1
     private static void generarReferencias(Scanner scanner) {
         try {
             System.out.println("Ingrese el tamaño de página (en bytes): ");
@@ -62,21 +61,24 @@ public class Main {
             String nombreImagenModificada = scanner.nextLine();
             imagen.escribirImagen(nombreImagenModificada);
 
+            int longitudMensaje = imagen.leerLongitud();
             int nf = imagen.alto;
             int nc = imagen.ancho;
-            int nr = nf * nc * 3 + mensajeChars.length * 8;
-            int np = (int) Math.ceil((double) nr / tamanoPagina);
+            int nr = (longitudMensaje*17)+16;
+            int tamanoImagen = nf * nc * 3;
+            int tamanoTotal = tamanoImagen + longitudMensaje;
+            int np = (int) Math.ceil((double) tamanoTotal / tamanoPagina);
 
             System.out.println("Ingrese el nombre del archivo para guardar las referencias: ");
             String nombreArchivoReferencias = scanner.nextLine();
             try (PrintWriter writer = new PrintWriter(new FileWriter(nombreArchivoReferencias))) {
-                writer.println("TP: " + tamanoPagina);
-                writer.println("NF: " + nf);
-                writer.println("NC: " + nc);
-                writer.println("NR: " + nr);
-                writer.println("NP: " + np);
+                writer.println("P=" + tamanoPagina);
+                writer.println("NF=" + nf);
+                writer.println("NC=" + nc);
+                writer.println("NR=" + nr);
+                writer.println("NP=" + np);
 
-                List<String> referencias = generarReferenciasDesdeImagen(imagen, tamanoPagina, mensajeChars.length);
+                List<String> referencias = generarReferenciasDesdeImagen(imagen, tamanoPagina, longitudMensaje, tamanoImagen);
                 for (String referencia : referencias) {
                     writer.println(referencia);
                 }
@@ -85,85 +87,119 @@ public class Main {
             e.printStackTrace();
         }
     }
-
-    // Método para generar referencias basadas en la imagen y el tamaño de página
-    private static List<String> generarReferenciasDesdeImagen(Imagen imagen, int tamanoPagina, int longitudMensaje) {
+    //METODO PARA OPCION 1
+    private static List<String> generarReferenciasDesdeImagen(Imagen imagen, int tamanoPagina, int longitudMensaje, int tamanoImagen) {
         List<String> referencias = new ArrayList<>();
-        int referenciasPorPagina = tamanoPagina / 3;
-        int paginaActual = 0;
+        String[] RGB = {"R","G","B"};
+        int ancho = imagen.ancho;
+        int alto = imagen.alto;
+        int bytesPorFila = ancho * 3;
+        int contadorBytes = 0; // Para el inicio donde solo contamos los 16 primeros bytes de Imagen
 
-        for (int i = 0; i < imagen.alto; i++) {
-            for (int j = 0; j < imagen.ancho; j++) {
-                referencias.add("Página: " + paginaActual + ", Fila: " + i + ", Columna: " + j);
-                if (referencias.size() % referenciasPorPagina == 0) {
-                    paginaActual++;
+        //recorrer 16 bytes de inicio
+            for (int fila = 0; fila < alto && contadorBytes < 16; fila++) {
+                for (int col = 0; col < ancho && contadorBytes < 16; col++) {
+                    for (int color = 0; color < 3 && contadorBytes < 16; color++) {
+                        int pagina = contadorBytes / tamanoPagina;
+                        int desp = contadorBytes % tamanoPagina;
+                        String referencia = "Imagen[" + fila + "][" + col + "]." + RGB[color] + "," + pagina + "," + desp + ",R";
+                        referencias.add(referencia);
+                        contadorBytes++;
+                    }
                 }
             }
-        }
+        
+        int numBytes = 16;// inicia en 16 debido a los bytes de inicio (de longitud) de arriba
+        int posCaracter = 0; // es igual al desplazamiento del mesaje
+        int paginaMensaje = tamanoImagen/tamanoPagina ; // El mensaje empieza después de las páginas ocupadas por la imagen, ej. la imagen ocupa 1152, a partir dd
+    
+        while (posCaracter < longitudMensaje) {
 
-        for (int i = 0; i < longitudMensaje; i++) {
-            referencias.add("Página: " + paginaActual + ", Vector mensaje, Índice: " + i);
-            if (referencias.size() % referenciasPorPagina == 0) {
-                paginaActual++;
+            // Inicializar el byte (mensaje)
+            String referenciaInicializacion = "Mensaje[" + posCaracter + "]," + (paginaMensaje) + "," + (posCaracter) + ",W";
+            referencias.add(referenciaInicializacion); 
+
+            // Cada caracter del mensaje tiene 8 bits, o sea van a haber 8 mensaje[], pag, desplazamiento, W + el de inicializacion
+            for (int i = 0; i < 8; i++) {
+                int bytePos = numBytes;
+                int fila = bytePos / bytesPorFila;
+                int col = (bytePos % bytesPorFila) / 3;
+                int color = (bytePos % 3);
+                int paginaImagen = bytePos / tamanoPagina; 
+                int despImagen = bytePos % tamanoPagina;
+
+                // Leer imagen
+                String referenciaLectura = "Imagen[" + fila + "][" + col + "]." + RGB[color] + "," + paginaImagen + "," + despImagen + ",R";
+                referencias.add(referenciaLectura);
+    
+                // Escribir mensaje 
+                String referenciaEscritura = "Mensaje[" + posCaracter + "]," + (paginaMensaje) + "," + (posCaracter) + ",W";
+                referencias.add(referenciaEscritura);
+    
+                numBytes++;
             }
+            if (posCaracter % tamanoPagina == 0 && posCaracter != 0 ) {
+                paginaMensaje++;  // Cambia de página cuando hemos llenado una
+            }
+            // Avanzar al siguiente carácter del mensaje después de procesar sus 8 bits
+            posCaracter++;
         }
-
+    
         return referencias;
     }
-
-    // Leer un archivo de texto
+    //METODO PARA OPCION 1
     private static String leerArchivoTexto(String nombreArchivo) throws IOException {
         StringBuilder contenido = new StringBuilder();
         try (BufferedReader reader = new BufferedReader(new FileReader(nombreArchivo))) {
-            String linea;
-            while ((linea = reader.readLine()) != null) {
-                contenido.append(linea).append("\n");
-            }
+            int caracter;
+            while ((caracter = reader.read()) != -1) {
+                if (caracter != '\r') {
+                    contenido.append((char) caracter); 
+                }
         }
+    }
         return contenido.toString();
     }
+   //METODO PRINCIPAL OPCION 2
+   private static void calcularFallasYHits(Scanner scanner) {
+    try {
 
-    // Calcular hits y fallas de página desde archivo de referencias
-    private static void calcularFallasYHits(Scanner scanner) {
-        try {
-            System.out.println("Ingrese el nombre del archivo de referencias: ");
-            String nombreArchivo = scanner.nextLine();
+        System.out.println("Ingrese el número de marcos de página: ");
+        int marcosTotales = scanner.nextInt();
+        scanner.nextLine(); // Limpiar buffer
 
-            List<String> referencias = leerReferencias(nombreArchivo);
 
-            System.out.println("Ingrese el número de marcos de página: ");
-            int marcosTotales = scanner.nextInt();
+        System.out.println("Ingrese el nombre del archivo de referencias: ");
+        String nombreArchivo = scanner.nextLine();
 
-            System.out.println("¿Desea ejecutar la simulación con concurrencia? (1=Sí, 0=No): ");
-            int conConcurrencia = scanner.nextInt();
+        List<String> referencias = leerReferencias(nombreArchivo);
 
-            if (conConcurrencia == 1) {
-                SimuladorMemoriaConcurrente simuladorConcurrente = new SimuladorMemoriaConcurrente(marcosTotales, referencias);
-                simuladorConcurrente.iniciarSimulacion();
-            } else {
-                SimuladorMemoria simuladorMemoria = new SimuladorMemoria(marcosTotales, referencias);
-                simuladorMemoria.simular();
-                simuladorMemoria.mostrarResultados();
-            }
+        SimuladorMemoria simulador = new SimuladorMemoria(marcosTotales, referencias);
+        simulador.simular();
+        simulador.mostrarResultados();
 
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+
+    } catch (Exception e) {
+        e.printStackTrace();
     }
-
-    // Leer archivo de referencias
-    private static List<String> leerReferencias(String nombreArchivo) throws IOException {
-        List<String> referencias = new ArrayList<>();
-        try (BufferedReader reader = new BufferedReader(new FileReader(nombreArchivo))) {
-            String linea;
-            while ((linea = reader.readLine()) != null) {
+}
+//METODO PARA OPCION 2
+private static List<String> leerReferencias(String nombreArchivo) {
+    List<String> referencias = new ArrayList<>();
+    try (BufferedReader br = new BufferedReader(new FileReader(nombreArchivo))) {
+        String linea;
+        while ((linea = br.readLine()) != null) {
+            // Ignorar las líneas que no son referencias
+            if (linea.startsWith("Imagen[") || linea.startsWith("Mensaje[")) {
                 referencias.add(linea);
             }
         }
-        return referencias;
+    } catch (IOException e) {
+        e.printStackTrace();
     }
+    return referencias;
+}
 
-    // Ejecutar todos los escenarios automáticamente
     private static void ejecutarEscenarios() {
         int[] tamanosImagen = {500, 300}; 
         int[] tamanosMensaje = {100, 1000, 2000, 4000, 8000};  
@@ -189,7 +225,7 @@ public class Main {
                         imagen.escribirImagen(nombreImagenModificada);
 
                         int tamanoPagina = 4096;
-                        List<String> referencias = generarReferenciasDesdeImagen(imagen, tamanoPagina, tamanoMensaje);
+                        List<String> referencias = generarReferenciasDesdeImagen(imagen, tamanoPagina, tamanoMensaje, 0); // REVISAR ULTIMO PARAMETRO , NO ES 0 
 
                         
                         String nombreArchivoReferencias = "referencias_" + tamanoImagen + "_" + tamanoMensaje + ".txt";
@@ -208,7 +244,6 @@ public class Main {
         }
     }
 
-    // Guardar referencias en un archivo
     private static void guardarReferencias(List<String> referencias, String nombreArchivo) {
         try (PrintWriter writer = new PrintWriter(new FileWriter(nombreArchivo))) {
             for (String ref : referencias) {

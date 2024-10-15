@@ -69,13 +69,12 @@ public class SimuladorMemoriaConcurrente {
         mostrarResultados();
     }
 
-    // Definir la clase para la tarea de actualización de la tabla de páginas
     private class ActualizacionTablaPaginas implements Runnable {
         @Override
         public void run() {
             System.out.println("Iniciando hilo de actualización de tabla de páginas...");
-            int paginaAnterior = -1;  // Variable para rastrear la última página procesada
-            int referenciasProcesadas = 0;  // Contador para procesar en bloques
+            int paginaAnterior = -1; 
+            int referenciasProcesadas = 0;  
 
             for (Pagina pagina : referencias) {
                 synchronized (lock) {
@@ -89,7 +88,6 @@ public class SimuladorMemoriaConcurrente {
                     }
                 }
 
-                // Procesar en bloques
                 if (pagina.numeroPagina != paginaAnterior) {
                     paginaAnterior = pagina.numeroPagina;
                     referenciasProcesadas++;
@@ -99,12 +97,11 @@ public class SimuladorMemoriaConcurrente {
                     }
                 }
             }
-            latch.countDown();  // Indicar que el hilo de actualización ha terminado
+            latch.countDown();  
             System.out.println("Hilo de actualización de tabla de páginas completado.");
         }
     }
 
-    // Definir la clase para la tarea de envejecimiento de las páginas
     private class AlgoritmoEnvejecimiento implements Runnable {
         @Override
         public void run() {
