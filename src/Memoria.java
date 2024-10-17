@@ -31,23 +31,39 @@ public class Memoria {
         marcos.add(nuevaPagina);
     }
 
-    private synchronized  Pagina seleccionarPaginaParaReemplazo() {
-        if (marcos.isEmpty()) {
-            return null; // No hay páginas -> no hay nada que reemplazar
+    private synchronized Pagina seleccionarPaginaParaReemplazo() { // utiliza NRU
+        List<List<Pagina>> clases = new ArrayList<>(4); 
+
+        for(int i = 0; i<4;i++){
+            clases.add(new ArrayList<>()); // Se crea 1 array por cada clase 
         }
-        Pagina paginaConMenorEnvejecimiento = marcos.get(0); // pg de inicio
-        for (int i = 1; i < marcos.size(); i++) {
-            Pagina paginaActual = marcos.get(i);
-            if (paginaActual.contadorEnvejecimiento < paginaConMenorEnvejecimiento.contadorEnvejecimiento) {
-                paginaConMenorEnvejecimiento = paginaActual; // Se actualiza si se encuentra una página con menor envejecimiento
-            }
-        }
-        return paginaConMenorEnvejecimiento;
+        // paginas dentro de su clase
+        for(Pagina pagina: marcos){
+            int clase = getClaseNRU(pagina);
+            clases.get(clase).add(pagina);
+        }            
+        
+        for(int i = 0; i<clases.size();i++){
+             if(!clases.get(i).isEmpty()){ // como es un ciclo se toma la clase 0, luego 2 l luego 3  y por ultimo 4 , para ir en orden de prioridad
+                return clases.get(i).get(0);
+             }
+
+        }    
+        return null;
+    }
+
+    private int getClaseNRU(Pagina pagina){
+        if(!pagina.bitR && !pagina.bitM ) return 0; // R=0, M=0
+        else if(!pagina.bitR && pagina.bitM ) return 1; // R=0, M=1
+        else if(pagina.bitR && !pagina.bitM ) return 2; // R=1, M=0
+        else { return 3; } // R=1, M=1
+
     }
     
-    public synchronized  void envejecerPaginas() {
-        for (Pagina pagina : marcos) {
-            pagina.envejecer();
-        }
+    public synchronized void interrupcionBitR(){
+        for(Pagina pagina: marcos){
+            pagina.bitR = false;
+        }            
+        
     }
 }

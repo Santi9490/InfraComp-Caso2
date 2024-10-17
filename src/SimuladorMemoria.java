@@ -1,4 +1,3 @@
-import java.util.ArrayList;
 import java.util.List;
 
 public class SimuladorMemoria {
@@ -21,11 +20,11 @@ public class SimuladorMemoria {
     public void simular() {
         long startTime = System.nanoTime();
 
-        Thread threadProcesamiento = new Thread(new Runnable() {
+        Thread threadProcesamiento = new Thread(new Runnable() { // thread que actualiza marcos de pagina de a cuerdo a hits y fallas
             public void run() {        
                 for (String ref : referencias) {
                     Pagina pagina = crearPaginaDeReferencia(ref);
-                    boolean hit = memoria.cargarPagina(pagina);
+                    boolean hit = memoria.cargarPagina(pagina); // hit o falla
 
                     if (hit) hits++;
                     else {
@@ -42,15 +41,17 @@ public class SimuladorMemoria {
         }
         );
     
-        Thread threadActualizacion = new Thread(new Runnable() {
+        Thread threadActualizacion = new Thread(new Runnable() { // thread que actualiza bit R
             public void run (){
                 while(!finSimulacion){
-                    memoria.envejecerPaginas();
                     try{
                         Thread.sleep(2);
                     } catch (InterruptedException e){
                         e.printStackTrace();
                     }
+
+                    memoria.interrupcionBitR();
+
 
                 }
             }
