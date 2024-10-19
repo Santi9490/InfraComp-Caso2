@@ -6,6 +6,10 @@ public class SimuladorMemoria {
     int hits;
     int fallas;
     long tiempoTotal;
+    long tiempoH;
+    long tiempoF;
+    long tiempoRAM;
+    long tiempoFallas;
     boolean finSimulacion;
 
     public SimuladorMemoria(int marcosTotales, List<String> referencias) {
@@ -14,21 +18,27 @@ public class SimuladorMemoria {
         this.hits = 0;
         this.fallas = 0;
         this.tiempoTotal = 0;
+        this.tiempoH = 0;
+        this.tiempoF = 0;
+        this.tiempoRAM = 0;
+        this.tiempoFallas =0;
         this.finSimulacion = false;
     }
 
     public void simular() {
-        long startTime = System.nanoTime();
 
-        Thread threadProcesamiento = new Thread(new Runnable() { // thread que actualiza marcos de pagina de a cuerdo a hits y fallas
+        Thread threadPaginacion = new Thread(new Runnable() { // thread que actualiza marcos de pagina de a cuerdo a hits y fallas
             public void run() {        
                 for (String ref : referencias) {
                     Pagina pagina = crearPaginaDeReferencia(ref);
                     boolean hit = memoria.cargarPagina(pagina); // hit o falla
 
-                    if (hit) hits++;
+                    if (hit) {
+                        hits++;
+                        tiempoH+=25;}
                     else {
                         fallas++;
+                        tiempoF+=10000000;
                     }
                     try{
                         Thread.sleep(1);
@@ -37,15 +47,16 @@ public class SimuladorMemoria {
                     }
                 } 
                 finSimulacion=true;
+
             }
         }
         );
     
-        Thread threadActualizacion = new Thread(new Runnable() { // thread que actualiza bit R
+        Thread threadActualizacionBitR = new Thread(new Runnable() { // thread que actualiza bit R
             public void run (){
                 while(!finSimulacion){
                     try{
-                        Thread.sleep(2);
+                        Thread.sleep(6);
                     } catch (InterruptedException e){
                         e.printStackTrace();
                     }
@@ -59,20 +70,21 @@ public class SimuladorMemoria {
         }
         );
 
-        threadProcesamiento.start();
-        threadActualizacion.start();
+        threadPaginacion.start();
+        threadActualizacionBitR.start();
 
         try {
-            threadProcesamiento.join();  // Espera hasta que el thread haya terminado
+            threadPaginacion.join();  // Espera hasta que el thread haya terminado
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
         
         finSimulacion = true;
-        
-        long endTime = System.nanoTime();
-        tiempoTotal = endTime - startTime;
-        
+        int totalRefs= hits+fallas;
+        tiempoRAM = totalRefs*25;
+        tiempoFallas = totalRefs*10000000L;
+        tiempoTotal=tiempoH+tiempoF;
+                
     }
 
     private Pagina crearPaginaDeReferencia(String ref){
@@ -85,10 +97,19 @@ public class SimuladorMemoria {
     }
 
     public void mostrarResultados() {
+
+        double porcentajeHits = ((double) hits / (hits + fallas) * 100) ;
+
         System.out.println("Total Hits: " + hits);
         System.out.println("Total Fallas: " + fallas);
-        System.out.println("Porcentaje de Hits: " + ((double) hits / (hits + fallas) * 100) + "%");
-        System.out.println("Tiempo Total de Simulación: " + tiempoTotal + " ns");
+        System.out.println("Porcentaje de Hits: " + String.format("%.2f",porcentajeHits)+ "%");
+        //System.out.println("Tiempo Total de hits: " + tiempoH + " ns");
+        //System.out.println("Tiempo Total de fallas: " + tiempoF + " ns");
+        System.out.println("Tiempo Total (con hits y fallas): " + tiempoTotal + " ns");
+        System.out.println("Tiempo Total si todas las referencias estuvieran en RAM: " + tiempoRAM + " ns");
+        System.out.println("Tiempo Total si todas las referencias condujeran a fallas de página: " + tiempoFallas + " ns");
+
+
     }
 }
 

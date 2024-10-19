@@ -29,7 +29,8 @@ public class Memoria {
         Pagina paginaReemplazo = seleccionarPaginaParaReemplazo();
         marcos.remove(paginaReemplazo);
         marcos.add(nuevaPagina);
-    }
+        }
+    
 
     private synchronized Pagina seleccionarPaginaParaReemplazo() { // utiliza NRU
         List<List<Pagina>> clases = new ArrayList<>(4); 
@@ -41,14 +42,13 @@ public class Memoria {
         for(Pagina pagina: marcos){
             int clase = getClaseNRU(pagina);
             clases.get(clase).add(pagina);
-        }            
-        
-        for(int i = 0; i<clases.size();i++){
-             if(!clases.get(i).isEmpty()){ // como es un ciclo se toma la clase 0, luego 2 l luego 3  y por ultimo 4 , para ir en orden de prioridad
-                return clases.get(i).get(0);
-             }
+        }              
 
-        }    
+        for (List<Pagina> clase : clases) {
+            if (!clase.isEmpty()) {
+                return clase.get(0); // // como es un ciclo se toma la clase 0, luego 2 l luego 3  y por ultimo 4 , para ir en orden de prioridad
+            }
+        }
         return null;
     }
 

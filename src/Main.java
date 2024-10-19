@@ -116,7 +116,7 @@ public class Main {
         while (posCaracter < longitudMensaje) {
 
             // Inicializar el byte (mensaje)
-            String referenciaInicializacion = "Mensaje[" + posCaracter + "]," + (paginaMensaje) + "," + (posCaracter) + ",W";
+            String referenciaInicializacion = "Mensaje[" + posCaracter + "]," + (paginaMensaje) + "," + (posCaracter%tamanoPagina)+ ",W";
             referencias.add(referenciaInicializacion); 
 
             // Cada caracter del mensaje tiene 8 bits, o sea van a haber 8 mensaje[], pag, desplazamiento, W + el de inicializacion
@@ -132,14 +132,15 @@ public class Main {
                 String referenciaLectura = "Imagen[" + fila + "][" + col + "]." + RGB[color] + "," + paginaImagen + "," + despImagen + ",R";
                 referencias.add(referenciaLectura);
     
-                // Escribir mensaje 
-                String referenciaEscritura = "Mensaje[" + posCaracter + "]," + (paginaMensaje) + "," + (posCaracter) + ",W";
+                int despMensaje = (posCaracter * 8 + i) % tamanoPagina;               
+                 // Escribir mensaje 
+                String referenciaEscritura = "Mensaje[" + posCaracter + "]," + (paginaMensaje) + "," + (despMensaje) + ",W";
                 referencias.add(referenciaEscritura);
     
                 numBytes++;
             }
-            if (posCaracter % tamanoPagina == 0 && posCaracter != 0 ) {
-                paginaMensaje++;  // Cambia de página cuando hemos llenado una
+            if ((posCaracter+1) % tamanoPagina == 0) {
+                paginaMensaje++;  // Cambia de página cuando hemos llenado la actual
             }
             // Avanzar al siguiente carácter del mensaje después de procesar sus 8 bits
             posCaracter++;
@@ -179,80 +180,86 @@ public class Main {
         simulador.mostrarResultados();
 
 
-    } catch (Exception e) {
-        e.printStackTrace();
-    }
-}
-//METODO PARA OPCION 2
-private static List<String> leerReferencias(String nombreArchivo) {
-    List<String> referencias = new ArrayList<>();
-    try (BufferedReader br = new BufferedReader(new FileReader(nombreArchivo))) {
-        String linea;
-        while ((linea = br.readLine()) != null) {
-            // Ignorar las líneas que no son referencias
-            if (linea.startsWith("Imagen[") || linea.startsWith("Mensaje[")) {
-                referencias.add(linea);
-            }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
-    } catch (IOException e) {
-        e.printStackTrace();
     }
-    return referencias;
-}
+    //METODO PARA OPCION 2
+    private static List<String> leerReferencias(String nombreArchivo) {
+        List<String> referencias = new ArrayList<>();
+        try (BufferedReader br = new BufferedReader(new FileReader(nombreArchivo))) {
+            String linea;
+            while ((linea = br.readLine()) != null) {
+                // Ignorar las líneas que no son referencias
+                if (linea.startsWith("Imagen[") || linea.startsWith("Mensaje[")) {
+                    referencias.add(linea);
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return referencias;
+    }
 
     private static void ejecutarEscenarios() {
-        int[] tamanosImagen = {500, 300}; 
-        int[] tamanosMensaje = {100, 1000, 2000, 4000, 8000};  
+        String[] imagenes = {"imagenArdilla.bmp", "imagenTucan.bmp"}; 
+        String[] mensajes = {"mensaje_100", "mensaje_1000", "mensaje_2000", "mensaje_4000", "mensaje_8000"};  
         int[] marcos = {4, 8};  
-        for (int tamanoImagen : tamanosImagen) {
-            for (int tamanoMensaje : tamanosMensaje) {
+        int[] tamanosPagina = {512,1024,2048};
+        for (String i : imagenes) {
+            for (String m : mensajes) {
                 for (int numMarcos : marcos) {
-                    try {
-                        System.out.println("Ejecutando escenario: Imagen=" + tamanoImagen + ", Mensaje=" + tamanoMensaje + ", Marcos=" + numMarcos);
+                    for (int tamanoP : tamanosPagina){
+                        try {
+                            System.out.println("---------------------------------------------------------------------------------------------------------------");
+                            System.out.println("Ejecutando escenario: Imagen = " + i + ", Mensaje = " + m + ", Marcos = " + numMarcos+", Tamano pagina = "+tamanoP);
+    
+                            Imagen imagen = new Imagen(i);
+                            String[] partesMensaje = m.split("_");
+                            if (partesMensaje.length < 2) {
+                                System.err.println("Error: Formato del mensaje inválido: " + m);
+                                continue;
+                            }
+                            int tamanoMensaje;
+                            try {
+                                tamanoMensaje = Integer.parseInt(partesMensaje[1]);
+                            } catch (NumberFormatException e) {
+                                System.err.println("Error: No se pudo convertir a número el tamaño del mensaje: " + partesMensaje[1]);
+                                continue;
+                            }
+                            char[] mensaje = new char[tamanoMensaje];
 
+                            imagen.esconder(mensaje, tamanoMensaje);
+                            String[] partesImagen = i.split("\\.");
+                            if (partesImagen.length < 2) {
+                                System.err.println("Error: Formato del nombre de imagen inválido: " + i);
+                                continue;
+                            }
+                            String nombreImagen = partesImagen[0];
                         
-                        String nombreImagen = "imagen_" + tamanoImagen + "x" + tamanoImagen + ".bmp";
-                        String nombreMensaje = "mensaje_" + tamanoMensaje + ".txt";
-                        Imagen imagen = new Imagen(nombreImagen);
+                            int longitudMensaje = imagen.leerLongitud();
+                            int nf = imagen.alto;
+                            int nc = imagen.ancho;
+                            int tamanoImagen = nf * nc * 3;
 
-                        char[] mensaje = new char[tamanoMensaje];
-                        for (int i = 0; i < tamanoMensaje; i++) {
-                            mensaje[i] = (char) (i % 256);  
+                            String nombreImagenModificada = "modificada" + nombreImagen + ".bmp";
+                            imagen.escribirImagen(nombreImagenModificada);
+    
+                            List<String> referencias = generarReferenciasDesdeImagen( imagen,  tamanoP,  longitudMensaje, tamanoImagen);
+                            SimuladorMemoria simulador = new SimuladorMemoria(numMarcos, referencias);
+                            simulador.simular();
+                            simulador.mostrarResultados();
+
+                        } catch (Exception e) {
+                            e.printStackTrace();
                         }
-
-                        imagen.esconder(mensaje, tamanoMensaje);
-                        String nombreImagenModificada = "imagen_modificada_" + tamanoImagen + ".bmp";
-                        imagen.escribirImagen(nombreImagenModificada);
-
-                        int tamanoPagina = 4096;
-                        List<String> referencias = generarReferenciasDesdeImagen(imagen, tamanoPagina, tamanoMensaje, 0); // REVISAR ULTIMO PARAMETRO , NO ES 0 
-
-                        
-                        String nombreArchivoReferencias = "referencias_" + tamanoImagen + "_" + tamanoMensaje + ".txt";
-                        guardarReferencias(referencias, nombreArchivoReferencias);
-
-                        SimuladorMemoria simulador = new SimuladorMemoria(numMarcos, referencias);
-                        simulador.simular();
-                        simulador.mostrarResultados();
-
-
-                    } catch (Exception e) {
-                        e.printStackTrace();
                     }
+
                 }
             }
         }
     }
 
-    private static void guardarReferencias(List<String> referencias, String nombreArchivo) {
-        try (PrintWriter writer = new PrintWriter(new FileWriter(nombreArchivo))) {
-            for (String ref : referencias) {
-                writer.println(ref);
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
 }
 
 
