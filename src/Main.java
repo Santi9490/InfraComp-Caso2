@@ -53,7 +53,6 @@ public class Main {
             String nombreMensaje = scanner.nextLine();
             
             String mensaje = leerArchivoTexto(nombreMensaje);
-            System.out.println("Longitud faker del mensaje: " + mensaje.length());
 
             char[] mensajeChars = mensaje.toCharArray();
             
