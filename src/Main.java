@@ -51,11 +51,15 @@ public class Main {
 
             System.out.println("Ingrese el nombre del archivo de texto con el mensaje escondido: ");
             String nombreMensaje = scanner.nextLine();
-
+            
             String mensaje = leerArchivoTexto(nombreMensaje);
-            char[] mensajeChars = mensaje.toCharArray();
+            System.out.println("Longitud faker del mensaje: " + mensaje.length());
 
-            imagen.esconder(mensajeChars, mensajeChars.length);
+            char[] mensajeChars = mensaje.toCharArray();
+            
+            int tamanoMensaje = mensajeChars.length;
+            
+            imagen.esconder(mensajeChars, tamanoMensaje);
 
             System.out.println("Ingrese el nombre del archivo para guardar la imagen modificada: ");
             String nombreImagenModificada = scanner.nextLine();
@@ -151,14 +155,15 @@ public class Main {
     //METODO PARA OPCION 1
     private static String leerArchivoTexto(String nombreArchivo) throws IOException {
         StringBuilder contenido = new StringBuilder();
-        try (BufferedReader reader = new BufferedReader(new FileReader(nombreArchivo))) {
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(
+                new FileInputStream(nombreArchivo), "UTF-8"))) {
             int caracter;
             while ((caracter = reader.read()) != -1) {
-                if (caracter != '\r') {
-                    contenido.append((char) caracter); 
+                if (true) {
+                    contenido.append((char) caracter);
                 }
+            }
         }
-    }
         return contenido.toString();
     }
    //METODO PRINCIPAL OPCION 2
@@ -227,7 +232,11 @@ public class Main {
                                 System.err.println("Error: No se pudo convertir a número el tamaño del mensaje: " + partesMensaje[1]);
                                 continue;
                             }
-                            char[] mensaje = new char[tamanoMensaje];
+                            String archivoRuta = m + ".txt";
+                            String contenidoMensaje = leerArchivoTexto(archivoRuta);
+                            //System.out.println("Longitud real del mensaje: " + contenidoMensaje.length());
+                            
+                            char[] mensaje = contenidoMensaje.toCharArray(); 
 
                             imagen.esconder(mensaje, tamanoMensaje);
                             String[] partesImagen = i.split("\\.");
