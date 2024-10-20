@@ -46,7 +46,7 @@ public class Memoria {
 
         for (List<Pagina> clase : clases) {
             if (!clase.isEmpty()) {
-                return clase.get(0); // // como es un ciclo se toma la clase 0, luego 2 l luego 3  y por ultimo 4 , para ir en orden de prioridad
+                return clase.get(0); // como es un ciclo se toma la clase 0, luego 2 l luego 3  y por ultimo 4 , para ir en orden de prioridad
             }
         }
         return null;

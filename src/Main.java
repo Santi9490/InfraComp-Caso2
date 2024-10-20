@@ -114,12 +114,16 @@ public class Main {
         
         int numBytes = 16;// inicia en 16 debido a los bytes de inicio (de longitud) de arriba
         int posCaracter = 0; // es igual al desplazamiento del mesaje
-        int paginaMensaje = tamanoImagen/tamanoPagina ; // El mensaje empieza después de las páginas ocupadas por la imagen, ej. la imagen ocupa 1152, a partir dd
-    
+        int paginaMensaje = tamanoImagen/tamanoPagina ; // El mensaje empieza después de las páginas ocupadas por la imagen, ej. la imagen ocupa 1152, a partir de ese numero viene el msj 
+        int despMsj =0;
+
         while (posCaracter < longitudMensaje) {
+            if (despMsj==tamanoPagina){
+                despMsj=0;
+            }
 
             // Inicializar el byte (mensaje)
-            String referenciaInicializacion = "Mensaje[" + posCaracter + "]," + (paginaMensaje) + "," + (posCaracter%tamanoPagina)+ ",W";
+            String referenciaInicializacion = "Mensaje[" + posCaracter + "]," + (paginaMensaje) + "," + (despMsj)+ ",W";
             referencias.add(referenciaInicializacion); 
 
             // Cada caracter del mensaje tiene 8 bits, o sea van a haber 8 mensaje[], pag, desplazamiento, W + el de inicializacion
@@ -135,9 +139,8 @@ public class Main {
                 String referenciaLectura = "Imagen[" + fila + "][" + col + "]." + RGB[color] + "," + paginaImagen + "," + despImagen + ",R";
                 referencias.add(referenciaLectura);
     
-                int despMensaje = (posCaracter * 8 + i) % tamanoPagina;               
                  // Escribir mensaje 
-                String referenciaEscritura = "Mensaje[" + posCaracter + "]," + (paginaMensaje) + "," + (despMensaje) + ",W";
+                String referenciaEscritura = "Mensaje[" + posCaracter + "]," + (paginaMensaje) + "," + (despMsj) + ",W";
                 referencias.add(referenciaEscritura);
     
                 numBytes++;
@@ -147,6 +150,7 @@ public class Main {
             }
             // Avanzar al siguiente carácter del mensaje después de procesar sus 8 bits
             posCaracter++;
+            despMsj++;
         }
     
         return referencias;
